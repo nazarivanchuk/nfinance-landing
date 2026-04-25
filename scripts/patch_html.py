@@ -91,9 +91,33 @@ def patch_html(html_path):
         flags=re.IGNORECASE
     )
 
-    # 10. Remove the bare preconnect link to cdn.prod.website-files.com
+    # 4b. Replace full CDN CSS reference (variant used in legal pages with double slash)
     content = re.sub(
-        r'<link\s+href="https://cdn\.prod\.website-files\.com"\s+rel="preconnect"\s*/?>',
+        r'https://cdn\.prod\.website-files\.com/6947fb1779dba6a26efc7f43//css/nfinance\.css',
+        '/css/nfinance.css',
+        content,
+        flags=re.IGNORECASE
+    )
+
+    # 4c. Strip integrity/crossorigin from the local CSS link to avoid SRI mismatch
+    content = re.sub(
+        r'(<link href="/css/nfinance\.css"[^>]*?)\s+integrity="[^"]*"(\s+crossorigin="[^"]*")?',
+        r'\1',
+        content,
+        flags=re.IGNORECASE
+    )
+
+    # 10a. Replace any remaining CDN JS URLs (webflow main bundle with any hash)
+    content = re.sub(
+        r'https://cdn\.prod\.website-files\.com/6947fb1779dba6a26efc7f43/js/webflow\.[^\s"\']+\.js',
+        '/js/webflow-main.js',
+        content,
+        flags=re.IGNORECASE
+    )
+
+    # 10. Remove the bare preconnect link to cdn.prod.website-files.com (with optional crossorigin attr)
+    content = re.sub(
+        r'<link\s+href="https://cdn\.prod\.website-files\.com"\s+rel="preconnect"[^>]*/?>',
         '',
         content,
         flags=re.IGNORECASE
