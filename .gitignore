@@ -3,3 +3,5 @@ scripts/__pycache__/
 .DS_Store
 Thumbs.db
 assets/videos/
+
+.vercel

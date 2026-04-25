@@ -106,3 +106,5 @@ def patch_html(html_path):
 
 # Patch UA version
 patch_html("C:/Users/nazar/nfinance-landing/index.html")
+patch_html("C:/Users/nazar/nfinance-landing/privacy-policy/index.html")
+patch_html("C:/Users/nazar/nfinance-landing/disclaimer/index.html")
