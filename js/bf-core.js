@@ -122,6 +122,19 @@
     return formatUsd(v, lang, decimals);
   }
 
+  // Phones only: what stays pinned at the top while the campaign bar is shown.
+  // 'full' = bar + Webflow nav (scrollY <= 120), 'bar' = bar only,
+  // 'none' = nothing (scrolled past 40% of the scrollable height).
+  var PIN_NAV_PX = 120;
+  var PIN_BAR_RATIO = 0.4;
+  function pinState(scrollY, scrollHeight, innerHeight) {
+    var y = scrollY > 0 ? scrollY : 0;
+    if (y <= PIN_NAV_PX) return "full";
+    var max = scrollHeight - innerHeight;
+    if (max > 0 && y / max > PIN_BAR_RATIO) return "none";
+    return "bar";
+  }
+
   var SALE_TEXT = {
     uk: {
       bar: "🎁 Перша знижка в історії. Тільки на Black Friday: до −30% на COT Навчання",
@@ -152,6 +165,9 @@
   };
 
   return {
+    PIN_NAV_PX: PIN_NAV_PX,
+    PIN_BAR_RATIO: PIN_BAR_RATIO,
+    pinState: pinState,
     PLANS_ANCHOR: PLANS_ANCHOR,
     NFIF_PRICING_URL: NFIF_PRICING_URL,
     COURSE_BOT_URL: COURSE_BOT_URL,

@@ -45,6 +45,38 @@ html.bf-on #header .w-nav-menu[data-nav-menu-open] {
   height: calc(100vh - var(--bf-bar-h, 0px)) !important;
 }
 
+/* ---- Phones: pinned bar/nav slide away on scroll (js/bf.js setupMobilePin) ----
+   bf-pin-bar: nav row hidden, bar pinned. bf-pin-none: both hidden. Both are fixed
+   elements, so only transform/opacity change and the page content never moves. */
+@media screen and (max-width: 767px) {
+  html.bf-on .bf-bar,
+  html.bf-on #header .container {
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease, visibility 0s linear 0s;
+  }
+  html.bf-on.bf-pin-bar #header .container,
+  html.bf-on.bf-pin-none #header .container {
+    transform: translate3d(0, calc(-100% - var(--bf-bar-h, 0px)), 0) !important;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease, visibility 0s linear 0.3s;
+  }
+  html.bf-on.bf-pin-none .bf-bar {
+    transform: translate3d(0, -100%, 0);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease, visibility 0s linear 0.3s;
+  }
+}
+@media screen and (max-width: 767px) and (prefers-reduced-motion: reduce) {
+  html.bf-on .bf-bar,
+  html.bf-on #header .container,
+  html.bf-on.bf-pin-bar #header .container,
+  html.bf-on.bf-pin-none #header .container,
+  html.bf-on.bf-pin-none .bf-bar { transition: none; }
+}
+
 /* ---- Hero pill: the BF text is longer than the original (pill has max-width 260px) ---- */
 html.bf-on [data-bf="pill"] { width: -webkit-fit-content; width: fit-content; max-width: 100%; }
 

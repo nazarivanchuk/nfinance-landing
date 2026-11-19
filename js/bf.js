@@ -66,6 +66,62 @@
     });
   }
 
+  // Phones (<768px) only: past 120px the Webflow nav row slides away and only the bar
+  // stays pinned; past 40% of the page the bar slides away too (BF.pinState). Both are
+  // fixed, so the page never shifts. Never hides while the Webflow mobile menu is open.
+  // Classes on <html>: bf-pin-bar | bf-pin-none (none = 'full'); CSS does the animation.
+  function setupMobilePin() {
+    if (!window.matchMedia || !window.requestAnimationFrame) return;
+    var root = document.documentElement;
+    var mq = window.matchMedia("(max-width: 767px)");
+    var header = document.getElementById("header");
+    var navBtn = header && header.querySelector(".w-nav-button");
+    var raf = 0, state = "full";
+
+    function menuOpen() {
+      return !!(header && (header.querySelector(".w-nav-menu[data-nav-menu-open]") ||
+        (navBtn && navBtn.classList.contains("w--open"))));
+    }
+    function apply(next) {
+      if (next === state) return;
+      root.classList.remove("bf-pin-bar", "bf-pin-none");
+      if (next !== "full") root.classList.add("bf-pin-" + next);
+      state = next;
+    }
+    function update() {
+      raf = 0;
+      if (!mq.matches || menuOpen()) { apply("full"); return; }
+      var de = document.documentElement;
+      apply(BF.pinState(window.pageYOffset || de.scrollTop || 0,
+        Math.max(de.scrollHeight, document.body ? document.body.scrollHeight : 0),
+        window.innerHeight || de.clientHeight));
+    }
+    function schedule() { if (!raf) raf = requestAnimationFrame(update); }
+
+    var opts = { passive: true };
+    window.addEventListener("scroll", schedule, opts);
+    window.addEventListener("resize", schedule, opts);
+    if (mq.addEventListener) mq.addEventListener("change", schedule);
+    else if (mq.addListener) mq.addListener(schedule);
+    var mo = null;
+    if (header && window.MutationObserver) {
+      // Menu opened/closed (button class, and the menu attribute Webflow drops only after
+      // its close animation) -> re-evaluate.
+      mo = new MutationObserver(schedule);
+      mo.observe(header, { attributes: true, subtree: true, attributeFilter: ["class", "data-nav-menu-open"] });
+    }
+    update();
+    cleanups.push(function () {
+      window.removeEventListener("scroll", schedule, opts);
+      window.removeEventListener("resize", schedule, opts);
+      if (mq.removeEventListener) mq.removeEventListener("change", schedule);
+      else if (mq.removeListener) mq.removeListener(schedule);
+      if (mo) mo.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+      root.classList.remove("bf-pin-bar", "bf-pin-none");
+    });
+  }
+
   // Replace an element's text and register the undo step.
   function swapText(node, text) {
     if (!node) return;
@@ -155,6 +211,7 @@
       inner.appendChild(el("span", "bf-bar-text", T.bar));
       inner.appendChild(link("bf-bar-link", T.barLink, BF.EARLY_LIST_URL, true));
     });
+    setupMobilePin();
     swapPill(T.pill);
     var txt = mountChip();
     mountTicker(T.ticker);
@@ -335,6 +392,7 @@
       inner.appendChild(plans);
       inner.appendChild(link("bf-bar-link bf-bar-link--nfif", S.nfifLink, BF.NFIF_PRICING_URL, true));
     }, "bf-bar--sale");
+    setupMobilePin();
     swapPill(S.pill);
     var cta = document.querySelector('[data-bf="cta"] a');
     swapText(cta, S.cta);

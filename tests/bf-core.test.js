@@ -81,3 +81,30 @@ test('no UA campaign string uses the word "курс" (any form)', () => {
   for (const group of [BF.TEXT.uk, BF.SALE_TEXT.uk])
     for (const [k, v] of Object.entries(group)) assert.doesNotMatch(v, /курс/i, k);
 });
+
+test('pinState: nav threshold at 120px', () => {
+  // page: scrollHeight 5000, viewport 800 -> max scroll 4200, 40% = 1680px
+  assert.equal(BF.pinState(0, 5000, 800), 'full');
+  assert.equal(BF.pinState(-30, 5000, 800), 'full'); // iOS overscroll bounce
+  assert.equal(BF.pinState(120, 5000, 800), 'full');
+  assert.equal(BF.pinState(121, 5000, 800), 'bar');
+  assert.equal(BF.pinState(300, 5000, 800), 'bar');
+});
+
+test('pinState: bar threshold at 40% of scrollable height', () => {
+  assert.equal(BF.pinState(1680, 5000, 800), 'bar');   // exactly 40%
+  assert.equal(BF.pinState(1681, 5000, 800), 'none');
+  assert.equal(BF.pinState(4200, 5000, 800), 'none');  // bottom
+  // scrolling back up restores
+  assert.equal(BF.pinState(1679, 5000, 800), 'bar');
+  assert.equal(BF.pinState(100, 5000, 800), 'full');
+});
+
+test('pinState: short pages', () => {
+  // 40% of max (200 * 0.4 = 80px) is below the nav threshold: stays full until 120px
+  assert.equal(BF.pinState(100, 1000, 800), 'full');
+  assert.equal(BF.pinState(150, 1000, 800), 'none');
+  // not scrollable at all
+  assert.equal(BF.pinState(0, 800, 800), 'full');
+  assert.equal(BF.pinState(200, 700, 800), 'bar');
+});
