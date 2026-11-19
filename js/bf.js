@@ -66,9 +66,11 @@
     });
   }
 
-  // Phones (<768px) only: past 120px the Webflow nav row slides away and only the bar
-  // stays pinned; past 40% of the page the bar slides away too (BF.pinState). Both are
-  // fixed, so the page never shifts. Never hides while the Webflow mobile menu is open.
+  // Phones (<768px) only (BF.pinState): at the top bar + Webflow nav; past 120px only the
+  // bar stays pinned; past 5% of the page the bar hides while scrolling down and returns
+  // on scroll up (8px hysteresis, BF.scrollDir); while #plans-section is >= 15% on screen
+  // the bar always shows. Both are fixed, so the page never shifts. Never hides while the
+  // Webflow mobile menu is open.
   // Classes on <html>: bf-pin-bar | bf-pin-none (none = 'full'); CSS does the animation.
   function setupMobilePin() {
     if (!window.matchMedia || !window.requestAnimationFrame) return;
@@ -76,7 +78,8 @@
     var mq = window.matchMedia("(max-width: 767px)");
     var header = document.getElementById("header");
     var navBtn = header && header.querySelector(".w-nav-button");
-    var raf = 0, state = "full";
+    var plans = document.querySelector(BF.PLANS_ANCHOR);
+    var raf = 0, state = "full", dirState = null, pricingVisible = false;
 
     function menuOpen() {
       return !!(header && (header.querySelector(".w-nav-menu[data-nav-menu-open]") ||
@@ -90,11 +93,18 @@
     }
     function update() {
       raf = 0;
-      if (!mq.matches || menuOpen()) { apply("full"); return; }
       var de = document.documentElement;
-      apply(BF.pinState(window.pageYOffset || de.scrollTop || 0,
-        Math.max(de.scrollHeight, document.body ? document.body.scrollHeight : 0),
-        window.innerHeight || de.clientHeight));
+      var y = window.pageYOffset || de.scrollTop || 0;
+      dirState = BF.scrollDir(dirState, y);
+      if (!mq.matches) { apply("full"); return; }
+      apply(BF.pinState({
+        scrollY: y,
+        scrollHeight: Math.max(de.scrollHeight, document.body ? document.body.scrollHeight : 0),
+        innerHeight: window.innerHeight || de.clientHeight,
+        dir: dirState.dir,
+        pricingVisible: pricingVisible,
+        menuOpen: menuOpen()
+      }));
     }
     function schedule() { if (!raf) raf = requestAnimationFrame(update); }
 
@@ -103,12 +113,20 @@
     window.addEventListener("resize", schedule, opts);
     if (mq.addEventListener) mq.addEventListener("change", schedule);
     else if (mq.addListener) mq.addListener(schedule);
-    var mo = null;
+    var mo = null, io = null;
     if (header && window.MutationObserver) {
       // Menu opened/closed (button class, and the menu attribute Webflow drops only after
       // its close animation) -> re-evaluate.
       mo = new MutationObserver(schedule);
       mo.observe(header, { attributes: true, subtree: true, attributeFilter: ["class", "data-nav-menu-open"] });
+    }
+    if (plans && window.IntersectionObserver) {
+      io = new IntersectionObserver(function (entries) {
+        var e = entries[entries.length - 1];
+        pricingVisible = e.isIntersecting && e.intersectionRatio >= 0.15;
+        schedule();
+      }, { threshold: [0, 0.15] });
+      io.observe(plans);
     }
     update();
     cleanups.push(function () {
@@ -117,6 +135,7 @@
       if (mq.removeEventListener) mq.removeEventListener("change", schedule);
       else if (mq.removeListener) mq.removeListener(schedule);
       if (mo) mo.disconnect();
+      if (io) io.disconnect();
       if (raf) cancelAnimationFrame(raf);
       root.classList.remove("bf-pin-bar", "bf-pin-none");
     });

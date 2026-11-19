@@ -46,7 +46,8 @@ html.bf-on #header .w-nav-menu[data-nav-menu-open] {
 }
 
 /* ---- Phones: pinned bar/nav slide away on scroll (js/bf.js setupMobilePin) ----
-   bf-pin-bar: nav row hidden, bar pinned. bf-pin-none: both hidden. Both are fixed
+   bf-pin-bar: nav row hidden, bar pinned. bf-pin-none: both hidden (past 5% while
+   scrolling down; scroll up or the pricing section brings the bar back). Both are fixed
    elements, so only transform/opacity change and the page content never moves. */
 @media screen and (max-width: 767px) {
   html.bf-on .bf-bar,

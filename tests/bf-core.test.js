@@ -82,29 +82,60 @@ test('no UA campaign string uses the word "курс" (any form)', () => {
     for (const [k, v] of Object.entries(group)) assert.doesNotMatch(v, /курс/i, k);
 });
 
+// page: scrollHeight 5000, viewport 800 -> max scroll 4200, 5% = 210px
+const P = (scrollY, extra) => BF.pinState(Object.assign(
+  { scrollY, scrollHeight: 5000, innerHeight: 800, dir: 'down', pricingVisible: false, menuOpen: false }, extra));
+
 test('pinState: nav threshold at 120px', () => {
-  // page: scrollHeight 5000, viewport 800 -> max scroll 4200, 40% = 1680px
-  assert.equal(BF.pinState(0, 5000, 800), 'full');
-  assert.equal(BF.pinState(-30, 5000, 800), 'full'); // iOS overscroll bounce
-  assert.equal(BF.pinState(120, 5000, 800), 'full');
-  assert.equal(BF.pinState(121, 5000, 800), 'bar');
-  assert.equal(BF.pinState(300, 5000, 800), 'bar');
+  assert.equal(P(0), 'full');
+  assert.equal(P(-30), 'full'); // iOS overscroll bounce
+  assert.equal(P(120), 'full');
+  assert.equal(P(121), 'bar');
+  assert.equal(P(120, { dir: 'up' }), 'full');
 });
 
-test('pinState: bar threshold at 40% of scrollable height', () => {
-  assert.equal(BF.pinState(1680, 5000, 800), 'bar');   // exactly 40%
-  assert.equal(BF.pinState(1681, 5000, 800), 'none');
-  assert.equal(BF.pinState(4200, 5000, 800), 'none');  // bottom
-  // scrolling back up restores
-  assert.equal(BF.pinState(1679, 5000, 800), 'bar');
-  assert.equal(BF.pinState(100, 5000, 800), 'full');
+test('pinState: 5% threshold, then direction decides', () => {
+  assert.equal(P(210), 'bar');                  // exactly 5%
+  assert.equal(P(211), 'none');                 // past 5%, scrolling down
+  assert.equal(P(211, { dir: 'up' }), 'bar');   // past 5%, scrolling up
+  assert.equal(P(4200), 'none');                // bottom, down
+  assert.equal(P(4200, { dir: 'up' }), 'bar');
+  assert.equal(P(200, { dir: 'down' }), 'bar'); // within 5%: bar either way
 });
 
-test('pinState: short pages', () => {
-  // 40% of max (200 * 0.4 = 80px) is below the nav threshold: stays full until 120px
-  assert.equal(BF.pinState(100, 1000, 800), 'full');
-  assert.equal(BF.pinState(150, 1000, 800), 'none');
-  // not scrollable at all
-  assert.equal(BF.pinState(0, 800, 800), 'full');
-  assert.equal(BF.pinState(200, 700, 800), 'bar');
+test('pinState: pricing section on screen always shows the bar', () => {
+  assert.equal(P(2000, { pricingVisible: true }), 'bar');
+  assert.equal(P(2000, { pricingVisible: true, dir: 'up' }), 'bar');
+  assert.equal(P(100, { pricingVisible: true }), 'full'); // top of page wins
+});
+
+test('pinState: open mobile menu never hides', () => {
+  assert.equal(P(2000, { menuOpen: true }), 'full');
+  assert.equal(P(300, { menuOpen: true }), 'full');
+  assert.equal(P(2000, { menuOpen: true, pricingVisible: true }), 'full');
+});
+
+test('pinState: short / non-scrollable pages', () => {
+  // max 200 -> 5% = 10px, below the nav threshold
+  assert.equal(BF.pinState({ scrollY: 100, scrollHeight: 1000, innerHeight: 800, dir: 'down' }), 'full');
+  assert.equal(BF.pinState({ scrollY: 150, scrollHeight: 1000, innerHeight: 800, dir: 'down' }), 'none');
+  assert.equal(BF.pinState({ scrollY: 0, scrollHeight: 800, innerHeight: 800, dir: 'down' }), 'full');
+  assert.equal(BF.pinState({ scrollY: 200, scrollHeight: 700, innerHeight: 800, dir: 'down' }), 'bar');
+});
+
+test('scrollDir: flips only after 8px against the current direction', () => {
+  let s = BF.scrollDir(null, 500);
+  assert.deepEqual(s, { dir: 'down', anchor: 500 });
+  s = BF.scrollDir(s, 600);                     // further down: anchor follows
+  assert.deepEqual(s, { dir: 'down', anchor: 600 });
+  s = BF.scrollDir(s, 593);                     // 7px up: no flip
+  assert.equal(s.dir, 'down');
+  s = BF.scrollDir(s, 592);                     // 8px up: flip
+  assert.deepEqual(s, { dir: 'up', anchor: 592 });
+  s = BF.scrollDir(s, 580);                     // further up
+  assert.deepEqual(s, { dir: 'up', anchor: 580 });
+  s = BF.scrollDir(s, 587);                     // 7px down: still up
+  assert.equal(s.dir, 'up');
+  s = BF.scrollDir(s, 588);                     // 8px down: flip
+  assert.deepEqual(s, { dir: 'down', anchor: 588 });
 });

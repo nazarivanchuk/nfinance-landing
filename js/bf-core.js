@@ -123,16 +123,36 @@
   }
 
   // Phones only: what stays pinned at the top while the campaign bar is shown.
-  // 'full' = bar + Webflow nav (scrollY <= 120), 'bar' = bar only,
-  // 'none' = nothing (scrolled past 40% of the scrollable height).
+  // 'full' = bar + Webflow nav, 'bar' = bar only, 'none' = nothing.
+  //  - scrollY <= 120px (or the mobile menu is open) -> 'full'
+  //  - pricing section on screen -> 'bar' (countdown next to the prices), any direction
+  //  - up to 5% of the scrollable height -> 'bar'
+  //  - past 5%: scrolling down -> 'none', scrolling up -> 'bar'
   var PIN_NAV_PX = 120;
-  var PIN_BAR_RATIO = 0.4;
-  function pinState(scrollY, scrollHeight, innerHeight) {
-    var y = scrollY > 0 ? scrollY : 0;
-    if (y <= PIN_NAV_PX) return "full";
-    var max = scrollHeight - innerHeight;
-    if (max > 0 && y / max > PIN_BAR_RATIO) return "none";
-    return "bar";
+  var PIN_BAR_RATIO = 0.05;
+  var PIN_DIR_PX = 8;
+  function pinState(o) {
+    var y = o.scrollY > 0 ? o.scrollY : 0;
+    if (o.menuOpen || y <= PIN_NAV_PX) return "full";
+    if (o.pricingVisible) return "bar";
+    var max = o.scrollHeight - o.innerHeight;
+    if (!(max > 0) || y / max <= PIN_BAR_RATIO) return "bar";
+    return o.dir === "up" ? "bar" : "none";
+  }
+
+  // Scroll direction with hysteresis: the direction flips only after >= PIN_DIR_PX of
+  // movement against it. `s` = {dir: 'down'|'up', anchor: furthest y in that direction}.
+  function scrollDir(s, y) {
+    var dir = s && s.dir === "up" ? "up" : "down";
+    var anchor = s && typeof s.anchor === "number" ? s.anchor : y;
+    if (dir === "down") {
+      if (y > anchor) anchor = y;
+      else if (anchor - y >= PIN_DIR_PX) { dir = "up"; anchor = y; }
+    } else {
+      if (y < anchor) anchor = y;
+      else if (y - anchor >= PIN_DIR_PX) { dir = "down"; anchor = y; }
+    }
+    return { dir: dir, anchor: anchor };
   }
 
   var SALE_TEXT = {
@@ -167,7 +187,9 @@
   return {
     PIN_NAV_PX: PIN_NAV_PX,
     PIN_BAR_RATIO: PIN_BAR_RATIO,
+    PIN_DIR_PX: PIN_DIR_PX,
     pinState: pinState,
+    scrollDir: scrollDir,
     PLANS_ANCHOR: PLANS_ANCHOR,
     NFIF_PRICING_URL: NFIF_PRICING_URL,
     COURSE_BOT_URL: COURSE_BOT_URL,
