@@ -100,6 +100,28 @@
     return "$" + s;
   }
 
+  // ---- Sale price animation (pure; bf.js drives the frames) ----
+  // Ease-out cubic on t in [0,1]; clamps outside.
+  function easeOutCubic(t) {
+    if (!(t > 0)) return 0;
+    if (t >= 1) return 1;
+    var u = 1 - t;
+    return 1 - u * u * u;
+  }
+
+  // Price string for frame t (0..1) of the count-down from -> to. Intermediate frames
+  // round to whole dollars (or to `decimals`); t >= 1 is exactly formatUsd(to, ...),
+  // the same string the static render shows, so the animation always lands on it.
+  function priceFrame(from, to, t, lang, decimals) {
+    if (t >= 1) return formatUsd(to, lang, decimals);
+    var v = from + (to - from) * easeOutCubic(t);
+    var f = Math.pow(10, decimals || 0);
+    v = Math.round(v * f) / f;
+    // Never show the final value before the last frame (or overshoot it).
+    if (to < from ? v <= to : v >= to) v = to + (to < from ? 1 : -1) / f;
+    return formatUsd(v, lang, decimals);
+  }
+
   var SALE_TEXT = {
     uk: {
       bar: "🎁 Перша знижка в історії. Тільки на Black Friday: до −30% на COT Навчання",
@@ -139,6 +161,8 @@
     discountPct: discountPct,
     savingUsd: savingUsd,
     formatUsd: formatUsd,
+    easeOutCubic: easeOutCubic,
+    priceFrame: priceFrame,
     TEASER_START: TEASER_START,
     SALE_START: SALE_START,
     SALE_END: SALE_END,

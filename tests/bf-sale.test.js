@@ -87,3 +87,47 @@ test('SALE_TEXT verbatim strings, key parity', () => {
   assert.equal(BF.PLANS_ANCHOR, '#plans-section');
   assert.equal(BF.NFIF_PRICING_URL, 'https://www.nfif.pro/#pricing');
 });
+
+test('easeOutCubic: clamped, monotonic, ease-out', () => {
+  assert.equal(BF.easeOutCubic(-1), 0);
+  assert.equal(BF.easeOutCubic(0), 0);
+  assert.equal(BF.easeOutCubic(NaN), 0);
+  assert.equal(BF.easeOutCubic(1), 1);
+  assert.equal(BF.easeOutCubic(2), 1);
+  assert.ok(BF.easeOutCubic(0.5) > 0.5);
+  let prev = 0;
+  for (let i = 1; i <= 100; i++) {
+    const v = BF.easeOutCubic(i / 100);
+    assert.ok(v >= prev, String(i));
+    prev = v;
+  }
+});
+
+test('priceFrame: starts at old price, lands exactly on the rendered sale price', () => {
+  for (const lang of ['uk', 'en']) {
+    for (const key of Object.keys(BF.COURSE_PRICES)) {
+      const p = BF.COURSE_PRICES[key];
+      assert.equal(BF.priceFrame(p.normal, p.sale, 0, lang), BF.formatUsd(p.normal, lang));
+      assert.equal(BF.priceFrame(p.normal, p.sale, 1, lang), BF.formatUsd(p.sale, lang));
+      assert.equal(BF.priceFrame(p.normal, p.sale, 1.3, lang), BF.formatUsd(p.sale, lang));
+      // Every intermediate frame: whole dollars, between the two prices, never the final value early.
+      let prev = p.normal;
+      for (let i = 1; i < 120; i++) {
+        const s = BF.priceFrame(p.normal, p.sale, i / 120, lang);
+        assert.match(s, /^\$\d+$/, s);
+        const v = Number(s.slice(1));
+        assert.ok(v <= prev && v > p.sale, key + ' ' + i + ' ' + s);
+        prev = v;
+      }
+    }
+  }
+});
+
+test('priceFrame: decimals keep the uk decimal comma and exact final string', () => {
+  assert.equal(BF.priceFrame(6.65, 5.65, 1, 'uk', 2), '$5,65');
+  assert.equal(BF.priceFrame(6.65, 5.65, 1, 'en', 2), '$5.65');
+  assert.equal(BF.priceFrame(6.65, 5.65, 0, 'uk', 2), '$6,65');
+  const mid = BF.priceFrame(6.65, 5.65, 0.5, 'uk', 2);
+  assert.match(mid, /^\$\d+,\d\d$/);
+  assert.notEqual(BF.priceFrame(6.65, 5.65, 0.999, 'uk', 2), '$5,65');
+});

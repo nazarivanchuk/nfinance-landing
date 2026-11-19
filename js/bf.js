@@ -209,10 +209,100 @@
         wrap.setAttribute("aria-hidden", "true");
         wrap.appendChild(el("span", "bf-ribbon", S.ribbon));
         append(card, wrap, card.firstChild);
+        // Decorative layers (CSS animates them; static under reduced motion).
+        var glow = el("span", "bf-glow");
+        glow.setAttribute("aria-hidden", "true");
+        append(card, glow, card.firstChild);
+        var shine = el("span", "bf-shine");
+        shine.setAttribute("aria-hidden", "true");
+        append(card, shine, wrap);
       } else {
         append(row, el("span", "bf-off-chip", "−" + BF.discountPct(key) + "%"));
       }
     }
+  }
+
+  // ---- Sale: one-time price-drop animation when each card first scrolls into view ----
+  // Rest state is the final state (sale price, struck old price, everything visible);
+  // the observer only plays one-shot CSS animations from it, so if JS/IO fails or the
+  // visitor prefers reduced motion, nothing is ever hidden. Cards in the phone slider
+  // play when their slide becomes visible (the slider mask clips the others).
+  var PRICE_MS = 1200;
+
+  // Add a one-shot animation class with a start delay; it removes itself when done
+  // (so a later display:none → block cannot replay it) and on teardown.
+  function oneShot(node, cls, delay, keep) {
+    if (!node) return;
+    node.style.setProperty("--bf-delay", delay + "ms");
+    node.classList.add(cls);
+    function done(e) {
+      if (e && (e.target !== node || e.animationName.indexOf("bf-") !== 0)) return; // ignore bubbled child events
+      node.removeEventListener("animationend", done);
+      // Cards keep the class: Webflow gives .plans_card "transition: all", and removing the
+      // finished animation there makes a visible opacity/transform blip.
+      if (keep && e) return;
+      node.classList.remove(cls);
+      node.style.removeProperty("--bf-delay");
+    }
+    node.addEventListener("animationend", done);
+    cleanups.push(function () { done(); });
+  }
+
+  function countPrice(priceEl, p, delay) {
+    var from = p.normal, to = p.sale, start = 0, raf = 0, last = "";
+    priceEl.classList.add("bf-counting");
+    function frame(now) {
+      if (!start) start = now + delay;
+      var s = BF.priceFrame(from, to, (now - start) / PRICE_MS, LANG);
+      if (s !== last) { priceEl.textContent = s; last = s; }
+      if (now - start < PRICE_MS) raf = requestAnimationFrame(frame);
+      else { raf = 0; priceEl.textContent = BF.formatUsd(to, LANG); priceEl.classList.remove("bf-counting"); }
+    }
+    priceEl.textContent = BF.formatUsd(from, LANG);
+    raf = requestAnimationFrame(frame);
+    cleanups.push(function () {
+      if (raf) cancelAnimationFrame(raf);
+      priceEl.classList.remove("bf-counting");
+    });
+  }
+
+  // entering: the card is just coming up from below (only a sliver on screen).
+  // On desktop (>=992px) Webflow's own scroll-into-view "slide in" already moves the cards
+  // in (inline opacity/transform), so the CSS rise runs only below 992px.
+  function playCard(card, i, entering) {
+    var rise = entering && !(window.matchMedia && window.matchMedia("(min-width: 992px)").matches);
+    var priceEl = card.querySelector("[data-bf-price]");
+    var p = priceEl && BF.COURSE_PRICES[priceEl.getAttribute("data-bf-price")];
+    if (!p) return;
+    var base = i * 140;
+    if (rise) oneShot(card, "bf-rise", base, true);
+    var priceDelay = base + (entering ? 350 : 80);
+    countPrice(priceEl, p, priceDelay);
+    var row = priceEl.parentNode;
+    oneShot(row.querySelector(".bf-old-price"), "bf-strike", priceDelay);
+    var popAt = priceDelay + PRICE_MS - 120;
+    var pops = card.querySelectorAll(".bf-off-chip, .bf-badge");
+    for (var k = 0; k < pops.length; k++) oneShot(pops[k], "bf-pop", popAt + k * 90);
+  }
+
+  function animatePlans() {
+    if (!window.IntersectionObserver || !window.requestAnimationFrame) return;
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var cards = document.querySelectorAll("#plans-section .plans_card");
+    if (!cards.length) return;
+    var io = new IntersectionObserver(function (entries) {
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      var n = 0;
+      for (var j = 0; j < entries.length; j++) {
+        var e = entries[j];
+        if (!e.isIntersecting) continue;
+        io.unobserve(e.target);
+        // A card already in view (anchor jump, slider swipe) is never faded out.
+        playCard(e.target, n++, e.boundingClientRect.top > vh * 0.82);
+      }
+    }, { threshold: 0 });
+    for (var i = 0; i < cards.length; i++) io.observe(cards[i]);
+    cleanups.push(function () { io.disconnect(); });
   }
 
   // Sale only: every bare bot CTA → ?start=course (bot opens the course catalog with BF prices).
@@ -251,6 +341,7 @@
     var txt = mountChip();
     mountTicker(S.ticker);
     applyPrices();
+    animatePlans();
     var clockNodes = [barCount];
     if (txt) clockNodes.push(txt);
     startClock(clockNodes, S.chipPrefix);

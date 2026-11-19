@@ -157,9 +157,23 @@ html.bf-sale .bf-price-row {
   font-family: Unbounded, sans-serif;
   font-size: 18px;
   line-height: 24px;
-  text-decoration: line-through;
-  text-decoration-thickness: 2px;
+  /* Strike line is a scalable ::after (drawn left→right by the price animation). */
+  text-decoration: none;
+  position: relative;
   white-space: nowrap;
+}
+.bf-old-price::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: currentColor;
+  border-radius: 1px;
+  transform-origin: 0 50%;
+  pointer-events: none;
 }
 .bf-sr {
   position: absolute;
@@ -254,4 +268,140 @@ html.bf-sale .bf-pro .bf-badge .popular-tag-text { color: #dc2626; font-weight: 
   .bf-bar--sale .bf-short { display: inline; }
   .bf-chip { height: 40px; font-size: 13px; }
   .bf-ticker { font-size: 11px; }
+}
+
+/* ---- Sale tariff animation (js/bf.js animatePlans + CSS loops on the Pro card) ----
+   Transform/opacity only. Rest state = final state; one-shot classes (bf-rise,
+   bf-strike, bf-pop) carry their own --bf-delay and remove themselves when done. */
+html.bf-sale .price.bf-counting { font-variant-numeric: tabular-nums; }
+
+.bf-rise { animation: bf-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) var(--bf-delay, 0ms) backwards; }
+@keyframes bf-rise {
+  from { opacity: 0; transform: translate3d(0, 16px, 0); }
+  to { opacity: 1; transform: none; }
+}
+.bf-strike::after { animation: bf-strike 0.8s cubic-bezier(0.33, 1, 0.68, 1) var(--bf-delay, 0ms) backwards; }
+@keyframes bf-strike {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.bf-pop { animation: bf-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) var(--bf-delay, 0ms) backwards; }
+@keyframes bf-pop {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Pro card: soft red glow pulse behind it (box-shadow only paints outside the card). */
+.bf-glow,
+.bf-glow::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 16px;
+  pointer-events: none;
+}
+.bf-glow {
+  z-index: 0;
+  box-shadow: 0 0 48px 4px rgba(239, 68, 68, 0.5);
+  opacity: 0.35;
+  animation: bf-glow 3.2s ease-in-out infinite alternate;
+}
+.bf-glow::after {
+  content: "";
+  box-shadow: 0 10px 64px 10px rgba(239, 68, 68, 0.6);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+@keyframes bf-glow {
+  from { opacity: 0.35; }
+  to { opacity: 0.9; }
+}
+
+/* Pro card: slow diagonal light sweep every 4 s (clipped by its own layer). */
+.bf-shine {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: 16px;
+  pointer-events: none;
+}
+.bf-shine::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 40%;
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.16) 50%, rgba(255, 255, 255, 0) 100%);
+  transform: translate3d(-110%, 0, 0) skewX(-18deg);
+  animation: bf-shine 4s ease-in-out 1.6s infinite;
+}
+@keyframes bf-shine {
+  0% { transform: translate3d(-110%, 0, 0) skewX(-18deg); }
+  35%, 100% { transform: translate3d(280%, 0, 0) skewX(-18deg); }
+}
+
+/* Corner ribbon: subtle shimmer, offset from the card sweep. */
+.bf-ribbon { overflow: hidden; }
+.bf-ribbon::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 30%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.85) 50%, rgba(255, 255, 255, 0) 100%);
+  opacity: 0.7;
+  transform: translate3d(-120%, 0, 0);
+  animation: bf-ribbon 4s ease-in-out 3.6s infinite;
+  pointer-events: none;
+}
+@keyframes bf-ribbon {
+  0% { transform: translate3d(-120%, 0, 0); }
+  25%, 100% { transform: translate3d(360%, 0, 0); }
+}
+
+/* Desktop wrapper clips overflow: leave room for the hover lift and the glow. */
+html.bf-sale .plans_card_wrapper { padding-top: 12px; padding-bottom: 28px; }
+
+/* Hover (mouse only): Pro card lifts with a stronger glow; Choose buttons ring once. */
+html.bf-sale .plans_card .plans_button { position: relative; overflow: visible; }
+html.bf-sale .plans_card .plans_button::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.75);
+  opacity: 0;
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.bf-sale .plans_card.bf-pro { transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+  /* !important: Webflow's slide-in leaves an inline transform on .plans_card. */
+  html.bf-sale .plans_card.bf-pro:hover { transform: translate3d(0, -4px, 0) !important; }
+  html.bf-sale .bf-pro:hover .bf-glow::after { opacity: 1; }
+  html.bf-sale .plans_card .plans_button:hover::after { animation: bf-ring 0.7s ease-out 1; }
+}
+@keyframes bf-ring {
+  from { opacity: 0.9; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.12, 1.35); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bf-rise, .bf-strike::after, .bf-pop,
+  .bf-glow, .bf-shine::before, .bf-ribbon::after,
+  html.bf-sale .plans_card .plans_button:hover::after { animation: none !important; }
+  .bf-shine, .bf-ribbon::after { display: none; }
+  html.bf-sale .plans_card.bf-pro { transition: none; }
+  html.bf-sale .plans_card.bf-pro:hover { transform: none !important; }
+  .bf-glow::after { transition: none; }
 }
