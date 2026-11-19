@@ -118,6 +118,7 @@
     uk: {
       bar: "🎁 Перша знижка в історії. Тільки на Black Friday: до −30% на курс",
       plansLink: "Дивитись тарифи →",
+      plansLinkShort: "Тарифи →",
       nfifLink: "NFIF −50% →",
       pill: "🎁 Black Friday · перша знижка в історії",
       cta: "Почати навчання · до −30%",
@@ -129,6 +130,7 @@
     en: {
       bar: "🎁 The first discount ever. Only on Black Friday: up to −30% on the course",
       plansLink: "See plans →",
+      plansLinkShort: "Plans →",
       nfifLink: "NFIF −50% →",
       pill: "🎁 Black Friday · first discount ever",
       cta: "Start learning · up to −30%",

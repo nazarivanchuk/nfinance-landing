@@ -211,7 +211,11 @@
       inner.appendChild(el("span", "bf-bar-text", S.bar));
       barCount = el("span", "bf-bar-count");
       inner.appendChild(barCount);
-      inner.appendChild(link("bf-bar-link", S.plansLink, BF.PLANS_ANCHOR, false));
+      // Long label on desktop, short one on phones (CSS swaps them at <480px).
+      var plans = link("bf-bar-link", null, BF.PLANS_ANCHOR, false);
+      plans.appendChild(el("span", "bf-long", S.plansLink));
+      plans.appendChild(el("span", "bf-short", S.plansLinkShort));
+      inner.appendChild(plans);
       inner.appendChild(link("bf-bar-link bf-bar-link--nfif", S.nfifLink, BF.NFIF_PRICING_URL, true));
     }, "bf-bar--sale");
     swapPill(S.pill);

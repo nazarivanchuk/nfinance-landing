@@ -67,6 +67,8 @@ test('SALE_TEXT verbatim strings, key parity', () => {
   assert.equal(S.uk.bar, '🎁 Перша знижка в історії. Тільки на Black Friday: до −30% на курс');
   assert.equal(S.en.plansLink, 'See plans →');
   assert.equal(S.uk.plansLink, 'Дивитись тарифи →');
+  assert.equal(S.en.plansLinkShort, 'Plans →');
+  assert.equal(S.uk.plansLinkShort, 'Тарифи →');
   assert.equal(S.en.nfifLink, 'NFIF −50% →');
   assert.equal(S.uk.nfifLink, 'NFIF −50% →');
   assert.equal(S.en.pill, '🎁 Black Friday · first discount ever');

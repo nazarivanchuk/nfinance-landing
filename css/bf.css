@@ -129,7 +129,8 @@ html.bf-on [data-bf="pill"] { width: -webkit-fit-content; width: fit-content; ma
 }
 .bf-bar--sale .bf-bar-link { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
 .bf-bar--sale .bf-bar-link:hover,
-.bf-bar--sale .bf-bar-link:focus-visible { color: #15161b; }
+.bf-bar--sale .bf-bar-link:focus-visible { color: #fff; opacity: 0.8; text-decoration-thickness: 2px; }
+.bf-bar--sale .bf-short { display: none; }
 .bf-bar-count {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -177,6 +178,10 @@ html.bf-sale .bf-badge {
 @media screen and (max-width: 479px) {
   .bf-bar { font-size: 13px; line-height: 18px; }
   .bf-bar-inner { padding: 8px 16px; }
+  /* Phones: sale bar = headline + countdown + short "Plans →" only (max 3 lines). */
+  .bf-bar--sale .bf-bar-link--nfif { display: none; }
+  .bf-bar--sale .bf-long { display: none; }
+  .bf-bar--sale .bf-short { display: inline; }
   .bf-chip { height: 40px; font-size: 13px; }
   .bf-ticker { font-size: 11px; }
 }
