@@ -76,6 +76,11 @@
   // ---- Sale phase: course prices (USD) and pure price helpers ----
   var PLANS_ANCHOR = "#plans-section";
   var NFIF_PRICING_URL = "https://www.nfif.pro/#pricing";
+  // Sale phase: bare bot CTAs open the course catalog (BF prices) via ?start=course.
+  var COURSE_BOT_URL = "https://t.me/NFinanceTradingBot?start=course";
+  function saleBotHref(href) {
+    return /^https:\/\/t\.me\/NFinanceTradingBot\/?$/i.test(href || "") ? COURSE_BOT_URL : null;
+  }
   var COURSE_PRICES = {
     course_junior: { normal: 399, sale: 339, days: 60, months: 2 },
     course_middle: { normal: 699, sale: 559, days: 120, months: 4 },
@@ -144,6 +149,8 @@
   return {
     PLANS_ANCHOR: PLANS_ANCHOR,
     NFIF_PRICING_URL: NFIF_PRICING_URL,
+    COURSE_BOT_URL: COURSE_BOT_URL,
+    saleBotHref: saleBotHref,
     COURSE_PRICES: COURSE_PRICES,
     SALE_TEXT: SALE_TEXT,
     perDay: perDay,

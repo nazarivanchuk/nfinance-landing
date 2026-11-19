@@ -204,8 +204,24 @@
     });
   }
 
+  // Sale only: every bare bot CTA → ?start=course (bot opens the course catalog with BF prices).
+  function swapBotLinks() {
+    var links = document.querySelectorAll('a[href*="t.me/NFinanceTradingBot"]');
+    for (var i = 0; i < links.length; i++) {
+      var a = links[i];
+      var original = a.getAttribute("href");
+      var next = BF.saleBotHref(original);
+      if (!next) continue;
+      a.setAttribute("href", next);
+      (function (a, original) {
+        cleanups.push(function () { a.setAttribute("href", original); });
+      })(a, original);
+    }
+  }
+
   function renderSale() {
     document.documentElement.classList.add("bf-on", "bf-sale");
+    swapBotLinks();
     var barCount = null;
     mountBar(function (inner) {
       inner.appendChild(el("span", "bf-bar-text", S.bar));

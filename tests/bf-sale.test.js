@@ -15,6 +15,27 @@ test('course sale prices match global constraints', () => {
   assert.equal(P.course_pro.days, 365);
 });
 
+test('saleBotHref: bare bot links → ?start=course, others untouched', () => {
+  assert.equal(BF.COURSE_BOT_URL, 'https://t.me/NFinanceTradingBot?start=course');
+  assert.equal(BF.saleBotHref('https://t.me/NFinanceTradingBot'), BF.COURSE_BOT_URL);
+  assert.equal(BF.saleBotHref('https://t.me/NFinanceTradingBot/'), BF.COURSE_BOT_URL);
+  assert.equal(BF.saleBotHref('https://t.me/NFinanceTradingBot?start=bf'), null);
+  assert.equal(BF.saleBotHref('https://t.me/NFinanceTradingBot?start=course'), null);
+  assert.equal(BF.saleBotHref('https://t.me/nfmanager'), null);
+  assert.equal(BF.saleBotHref(null), null);
+});
+
+test('every bot CTA in both pages is a bare bot link the sale rewrites', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  for (const f of ['index.html', 'en/index.html']) {
+    const html = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+    const hrefs = [...html.matchAll(/href="(https:\/\/t\.me\/NFinanceTradingBot[^"]*)"/g)].map(m => m[1]);
+    assert.ok(hrefs.length > 0, f);
+    for (const h of hrefs) assert.equal(BF.saleBotHref(h), BF.COURSE_BOT_URL, f + ' ' + h);
+  }
+});
+
 test('perDay sale values', () => {
   assert.equal(BF.perDay('course_junior'), 5.65);
   assert.equal(BF.perDay('course_middle'), 4.66);
