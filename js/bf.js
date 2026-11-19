@@ -1,6 +1,6 @@
 /* Black Friday 2026 — DOM layer for the course site (needs js/bf-core.js first).
    Phase from BFCore.getPhase(now, ?bf= override). 'off' → does nothing at all.
-   One render function per phase: teaser is built here; sale is a seam for the sale task.
+   One render function per phase (teaser, sale).
    Swap targets in the HTML: data-bf="pill" | "cta" | "hero"; data-bf-price="course_*". */
 (function () {
   "use strict";
@@ -14,6 +14,7 @@
   var cleanups = []; // undo steps for everything a render adds (used by in-place re-render)
   var LANG = /^en\b/i.test(document.documentElement.getAttribute("lang") || "") ? "en" : "uk";
   var T = BF.TEXT[LANG];
+  var S = BF.SALE_TEXT[LANG];
 
   function el(tag, cls, text) {
     var n = document.createElement(tag);
@@ -24,17 +25,20 @@
 
   // Top bar is position:fixed above the fixed Webflow nav; its real height (it wraps on
   // phones) goes into --bf-bar-h, which pushes the nav and the page content down.
-  function mountBar() {
-    var bar = el("div", "bf-bar");
+  function link(cls, text, href, newTab) {
+    var a = el("a", cls, text);
+    a.href = href;
+    if (newTab) { a.target = "_blank"; a.rel = "noopener"; }
+    return a;
+  }
+
+  // fill(inner) adds the bar content; extraCls is a modifier class (sale = violet bar).
+  function mountBar(fill, extraCls) {
+    var bar = el("div", "bf-bar" + (extraCls ? " " + extraCls : ""));
     bar.setAttribute("role", "region");
     bar.setAttribute("aria-label", "Black Friday");
     var inner = el("div", "bf-bar-inner");
-    inner.appendChild(el("span", "bf-bar-text", T.bar));
-    var a = el("a", "bf-bar-link", T.barLink);
-    a.href = BF.EARLY_LIST_URL;
-    a.target = "_blank";
-    a.rel = "noopener";
-    inner.appendChild(a);
+    fill(inner);
     bar.appendChild(inner);
     document.body.insertBefore(bar, document.body.firstChild);
 
@@ -62,23 +66,28 @@
     });
   }
 
-  function swapPill() {
-    var pill = document.querySelector('[data-bf="pill"]');
-    if (!pill) return;
-    var p = pill.querySelector("p") || pill;
-    var original = p.textContent;
-    p.textContent = T.pill;
-    cleanups.push(function () { p.textContent = original; });
+  // Replace an element's text and register the undo step.
+  function swapText(node, text) {
+    if (!node) return;
+    var original = node.textContent;
+    node.textContent = text;
+    cleanups.push(function () { node.textContent = original; });
   }
 
-  function mountTicker() {
+  function swapPill(text) {
+    var pill = document.querySelector('[data-bf="pill"]');
+    if (!pill) return;
+    swapText(pill.querySelector("p") || pill, text);
+  }
+
+  function mountTicker(text) {
     var hero = document.querySelector('[data-bf="hero"]');
     if (!hero || !hero.parentNode) return;
     var tk = el("div", "bf-ticker");
     var track = el("div", "bf-ticker-track");
     for (var i = 0; i < 2; i++) {
       // The "·" between copies is CSS (::after), so a lone copy never ends with a separator.
-      var item = el("span", "bf-ticker-item", T.ticker);
+      var item = el("span", "bf-ticker-item", text);
       if (i) item.setAttribute("aria-hidden", "true"); // 2nd copy only makes the loop seamless
       track.appendChild(item);
     }
@@ -102,7 +111,8 @@
     return txt;
   }
 
-  function startClock(txt, prefix) {
+  // nodes: text nodes that show "<prefix> 2d 14h 37m" (chip, sale bar).
+  function startClock(nodes, prefix) {
     var last = "";
     function tick() {
       var now = new Date();
@@ -110,7 +120,10 @@
       var next = override ? phase : BF.getPhase(now);
       if (next !== phase) { clearInterval(id); switchPhase(next); return; }
       var s = prefix + " " + BF.formatCountdown(BF.countdownTo(now, phase), LANG);
-      if (s !== last) { txt.textContent = s; last = s; }
+      if (s !== last) {
+        for (var i = 0; i < nodes.length; i++) nodes[i].textContent = s;
+        last = s;
+      }
     }
     var id = setInterval(tick, 1000);
     cleanups.push(function () { clearInterval(id); });
@@ -138,17 +151,78 @@
 
   function renderTeaser() {
     document.documentElement.classList.add("bf-on", "bf-teaser");
-    mountBar();
-    swapPill();
+    mountBar(function (inner) {
+      inner.appendChild(el("span", "bf-bar-text", T.bar));
+      inner.appendChild(link("bf-bar-link", T.barLink, BF.EARLY_LIST_URL, true));
+    });
+    swapPill(T.pill);
     var txt = mountChip();
-    mountTicker();
-    if (txt) startClock(txt, T.chipPrefix);
+    mountTicker(T.ticker);
+    if (txt) startClock([txt], T.chipPrefix);
+  }
+
+  // Every [data-bf-price] gets: struck old price before it, the sale price, and its
+  // per-day / per-month sub-label (next sibling) recalculated. Pro badge → BF badge.
+  function applyPrices() {
+    var nodes = document.querySelectorAll("[data-bf-price]");
+    for (var i = 0; i < nodes.length; i++) {
+      var priceEl = nodes[i];
+      var key = priceEl.getAttribute("data-bf-price");
+      var p = BF.COURSE_PRICES[key];
+      if (!p) continue;
+      var row = priceEl.parentNode;
+      row.classList.add("bf-price-row");
+      var old = el("s", "bf-old-price");
+      old.appendChild(el("span", "bf-sr", S.oldPriceLabel + ": "));
+      old.appendChild(document.createTextNode(BF.formatUsd(p.normal, LANG)));
+      row.insertBefore(old, priceEl);
+      swapText(priceEl, BF.formatUsd(p.sale, LANG));
+      var sub = priceEl.nextElementSibling;
+      var unit = sub && BF.rateUnit(sub.textContent);
+      if (unit) swapText(sub, BF.rateLabel(key, unit, LANG));
+      if (key === "course_pro") {
+        var card = priceEl, badge = null;
+        for (var up = 0; up < 8 && card && !badge; up++) {
+          card = card.parentNode;
+          badge = card && card.querySelector ? card.querySelector(".popular-tag-text") : null;
+        }
+        if (badge) {
+          swapText(badge, S.badge);
+          badge.parentNode.classList.add("bf-badge");
+        }
+      }
+      (function (row, old) {
+        cleanups.push(function () {
+          old.parentNode && old.parentNode.removeChild(old);
+          row.classList.remove("bf-price-row");
+        });
+      })(row, old);
+    }
+    cleanups.push(function () {
+      var b = document.querySelectorAll(".bf-badge");
+      for (var j = 0; j < b.length; j++) b[j].classList.remove("bf-badge");
+    });
   }
 
   function renderSale() {
-    // Seam for the sale task (prices via [data-bf-price], CTA label, sale bar/ticker).
-    // Intentionally empty in phase 1: with ?bf=sale only the mini-course popup is paused.
-    document.documentElement.classList.add("bf-sale");
+    document.documentElement.classList.add("bf-on", "bf-sale");
+    var barCount = null;
+    mountBar(function (inner) {
+      inner.appendChild(el("span", "bf-bar-text", S.bar));
+      barCount = el("span", "bf-bar-count");
+      inner.appendChild(barCount);
+      inner.appendChild(link("bf-bar-link", S.plansLink, BF.PLANS_ANCHOR, false));
+      inner.appendChild(link("bf-bar-link bf-bar-link--nfif", S.nfifLink, BF.NFIF_PRICING_URL, true));
+    }, "bf-bar--sale");
+    swapPill(S.pill);
+    var cta = document.querySelector('[data-bf="cta"] a');
+    swapText(cta, S.cta);
+    var txt = mountChip();
+    mountTicker(S.ticker);
+    applyPrices();
+    var clockNodes = [barCount];
+    if (txt) clockNodes.push(txt);
+    startClock(clockNodes, S.chipPrefix);
   }
 
   var RENDER = { teaser: renderTeaser, sale: renderSale };

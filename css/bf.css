@@ -122,6 +122,58 @@ html.bf-on [data-bf="pill"] { width: -webkit-fit-content; width: fit-content; ma
   .bf-ticker-item[aria-hidden="true"] { display: none; }
 }
 
+/* ---- Sale phase ---- */
+.bf-bar--sale {
+  background: #7155ff;
+  border-bottom-color: rgba(255, 255, 255, 0.25);
+}
+.bf-bar--sale .bf-bar-link { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.bf-bar--sale .bf-bar-link:hover,
+.bf-bar--sale .bf-bar-link:focus-visible { color: #15161b; }
+.bf-bar-count {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-weight: 600;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(21, 22, 27, 0.28);
+}
+
+/* Pricing cards: struck old price + sale price + recalculated sub-label in one row.
+   The Webflow sub-label is absolutely positioned at a fixed left offset that assumes the
+   old price width; in sale it flows in the row instead. */
+html.bf-sale .bf-price-row {
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
+  row-gap: 2px;
+}
+html.bf-sale .bf-price-row > .monthly-price,
+html.bf-sale .bf-price-row > .monthly-price-2,
+html.bf-sale .bf-price-row > .monthly-price-3 { position: static; }
+.bf-old-price {
+  color: #fff;
+  opacity: 0.6;
+  font-family: Unbounded, sans-serif;
+  font-size: 18px;
+  line-height: 24px;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  white-space: nowrap;
+}
+.bf-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+html.bf-sale .bf-badge {
+  background: #7155ff;
+  padding: 0 8px;
+}
+
 @media screen and (max-width: 479px) {
   .bf-bar { font-size: 13px; line-height: 18px; }
   .bf-bar-inner { padding: 8px 16px; }

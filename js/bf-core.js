@@ -73,7 +73,83 @@
     }
   };
 
+  // ---- Sale phase: course prices (USD) and pure price helpers ----
+  var PLANS_ANCHOR = "#plans-section";
+  var NFIF_PRICING_URL = "https://www.nfif.pro/#pricing";
+  var COURSE_PRICES = {
+    course_junior: { normal: 399, sale: 339, days: 60, months: 2 },
+    course_middle: { normal: 699, sale: 559, days: 120, months: 4 },
+    course_pro: { normal: 1199, sale: 839, days: 365, months: 12 }
+  };
+
+  function round2(v) { return Math.round(v * 100) / 100; }
+
+  function perDay(key) { var p = COURSE_PRICES[key]; return round2(p.sale / p.days); }
+  function perMonth(key) { var p = COURSE_PRICES[key]; return round2(p.sale / p.months); }
+  function discountPct(key) {
+    var p = COURSE_PRICES[key];
+    return Math.round((1 - p.sale / p.normal) * 100);
+  }
+
+  // "$339" (whole, no decimals given) or "$5.65" / "$5,65" (uk uses a decimal comma).
+  function formatUsd(v, lang, decimals) {
+    var s = decimals == null ? String(v) : v.toFixed(decimals);
+    if (lang === "uk") s = s.replace(".", ",");
+    return "$" + s;
+  }
+
+  var RATE_UNITS = { uk: { day: "день", month: "місяць" }, en: { day: "day", month: "month" } };
+
+  // Sub-label under a card price, e.g. "$5.65 / day", "$169,50 / місяць".
+  function rateLabel(key, unit, lang) {
+    var v = unit === "month" ? perMonth(key) : perDay(key);
+    var u = (RATE_UNITS[lang] || RATE_UNITS.en)[unit];
+    return formatUsd(v, lang, 2) + " / " + u;
+  }
+
+  // Which unit an existing sub-label uses ("… / day", "… / місяць"); null if unknown.
+  function rateUnit(text) {
+    if (/\/\s*(day|день)/i.test(text || "")) return "day";
+    if (/\/\s*(month|місяць)/i.test(text || "")) return "month";
+    return null;
+  }
+
+  var SALE_TEXT = {
+    uk: {
+      bar: "🎁 Перша знижка в історії. Тільки на Black Friday: до −30% на курс",
+      plansLink: "Дивитись тарифи →",
+      nfifLink: "NFIF −50% →",
+      pill: "🎁 Black Friday · перша знижка в історії",
+      cta: "Почати навчання · до −30%",
+      chipPrefix: "Закінчується через",
+      badge: "🎁 −30% · BF",
+      oldPriceLabel: "Стара ціна",
+      ticker: "PRO $839 ▼30% · MIDDLE $559 ▼20% · JUNIOR $339 ▼15% · ПЕРША ЗНИЖКА З МОМЕНТУ ЗАПУСКУ · ЗАКІНЧУЄТЬСЯ ПН 23:59 КИЇВ"
+    },
+    en: {
+      bar: "🎁 The first discount ever. Only on Black Friday: up to −30% on the course",
+      plansLink: "See plans →",
+      nfifLink: "NFIF −50% →",
+      pill: "🎁 Black Friday · first discount ever",
+      cta: "Start learning · up to −30%",
+      chipPrefix: "Ends in",
+      badge: "🎁 −30% · BF",
+      oldPriceLabel: "Old price",
+      ticker: "PRO $839 ▼30% · MIDDLE $559 ▼20% · JUNIOR $339 ▼15% · FIRST DISCOUNT SINCE LAUNCH · ENDS MON 23:59 KYIV"
+    }
+  };
+
   return {
+    PLANS_ANCHOR: PLANS_ANCHOR,
+    NFIF_PRICING_URL: NFIF_PRICING_URL,
+    COURSE_PRICES: COURSE_PRICES,
+    SALE_TEXT: SALE_TEXT,
+    perDay: perDay,
+    perMonth: perMonth,
+    discountPct: discountPct,
+    formatUsd: formatUsd,
+    rateLabel: rateLabel,
+    rateUnit: rateUnit,
     TEASER_START: TEASER_START,
     SALE_START: SALE_START,
     SALE_END: SALE_END,
