@@ -11,6 +11,7 @@
   var phase = BF.getPhase(new Date(), override);
   if (phase === "off") return;
 
+  var cleanups = []; // undo steps for everything a render adds (used by in-place re-render)
   var LANG = /^en\b/i.test(document.documentElement.getAttribute("lang") || "") ? "en" : "uk";
   var T = BF.TEXT[LANG];
 
@@ -38,17 +39,36 @@
     document.body.insertBefore(bar, document.body.firstChild);
 
     var root = document.documentElement;
-    function sync() { root.style.setProperty("--bf-bar-h", bar.offsetHeight + "px"); }
+    function sync() {
+      if (bar.parentNode) root.style.setProperty("--bf-bar-h", bar.offsetHeight + "px");
+    }
     sync();
-    window.addEventListener("resize", sync);
+    if (window.ResizeObserver) {
+      var ro = new ResizeObserver(sync); // catches wrap changes from resize, fonts, zoom
+      ro.observe(bar);
+      cleanups.push(function () { ro.disconnect(); });
+    } else {
+      window.addEventListener("resize", sync);
+      window.addEventListener("orientationchange", sync);
+      cleanups.push(function () {
+        window.removeEventListener("resize", sync);
+        window.removeEventListener("orientationchange", sync);
+      });
+    }
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(sync);
+    cleanups.push(function () {
+      bar.parentNode && bar.parentNode.removeChild(bar);
+      root.style.removeProperty("--bf-bar-h");
+    });
   }
 
   function swapPill() {
     var pill = document.querySelector('[data-bf="pill"]');
     if (!pill) return;
     var p = pill.querySelector("p") || pill;
+    var original = p.textContent;
     p.textContent = T.pill;
+    cleanups.push(function () { p.textContent = original; });
   }
 
   function mountTicker() {
@@ -57,12 +77,14 @@
     var tk = el("div", "bf-ticker");
     var track = el("div", "bf-ticker-track");
     for (var i = 0; i < 2; i++) {
-      var item = el("span", "bf-ticker-item", T.ticker + " · ");
+      // The "·" between copies is CSS (::after), so a lone copy never ends with a separator.
+      var item = el("span", "bf-ticker-item", T.ticker);
       if (i) item.setAttribute("aria-hidden", "true"); // 2nd copy only makes the loop seamless
       track.appendChild(item);
     }
     tk.appendChild(track);
     hero.parentNode.insertBefore(tk, hero.nextSibling);
+    cleanups.push(function () { tk.parentNode && tk.parentNode.removeChild(tk); });
   }
 
   function mountChip() {
@@ -76,6 +98,7 @@
     chip.appendChild(dot);
     chip.appendChild(txt);
     cta.parentNode.insertBefore(chip, cta.nextSibling);
+    cleanups.push(function () { chip.parentNode && chip.parentNode.removeChild(chip); });
     return txt;
   }
 
@@ -83,13 +106,34 @@
     var last = "";
     function tick() {
       var now = new Date();
-      // Real phase flipped (e.g. teaser → sale at 18:00 Kyiv): reload once to re-render.
-      if (!override && BF.getPhase(now) !== phase) { clearInterval(id); location.reload(); return; }
+      // Real phase flipped (e.g. teaser → sale at 18:00 Kyiv).
+      var next = override ? phase : BF.getPhase(now);
+      if (next !== phase) { clearInterval(id); switchPhase(next); return; }
       var s = prefix + " " + BF.formatCountdown(BF.countdownTo(now, phase), LANG);
       if (s !== last) { txt.textContent = s; last = s; }
     }
     var id = setInterval(tick, 1000);
+    cleanups.push(function () { clearInterval(id); });
     tick();
+  }
+
+  // Reload at most once per phase value per tab (sessionStorage guard). If storage is
+  // unavailable or this tab already reloaded for that phase, re-render in place instead.
+  function switchPhase(next) {
+    var key = "bf_reloaded_" + next;
+    var canReload = false;
+    try {
+      if (!sessionStorage.getItem(key)) { sessionStorage.setItem(key, "1"); canReload = true; }
+    } catch (e) { canReload = false; }
+    if (canReload) { location.reload(); return; }
+    teardown();
+    phase = next;
+    if (phase !== "off") RENDER[phase]();
+  }
+
+  function teardown() {
+    while (cleanups.length) { try { cleanups.pop()(); } catch (e) {} }
+    document.documentElement.classList.remove("bf-on", "bf-teaser", "bf-sale");
   }
 
   function renderTeaser() {

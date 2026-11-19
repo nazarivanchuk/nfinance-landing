@@ -38,6 +38,12 @@
 
 html.bf-on body { padding-top: var(--bf-bar-h, 0px); }
 html.bf-on #header .container { top: var(--bf-bar-h, 0px) !important; }
+/* Webflow mobile menu (<=991px) is a full-screen fixed panel from top:0 whose padding
+   clears the nav row only; start it below the bar so the first link is not covered. */
+html.bf-on #header .w-nav-menu[data-nav-menu-open] {
+  top: var(--bf-bar-h, 0px) !important;
+  height: calc(100vh - var(--bf-bar-h, 0px)) !important;
+}
 
 /* ---- Hero pill: the BF text is longer than the original (pill has max-width 260px) ---- */
 html.bf-on [data-bf="pill"] { width: -webkit-fit-content; width: fit-content; max-width: 100%; }
@@ -95,7 +101,10 @@ html.bf-on [data-bf="pill"] { width: -webkit-fit-content; width: fit-content; ma
 .bf-ticker-item {
   flex: none;
   white-space: nowrap;
-  padding-right: 0.5em;
+}
+.bf-ticker-item::after {
+  content: "\00a0\00b7\00a0";
+  white-space: pre;
 }
 @keyframes bf-ticker {
   from { transform: translateX(0); }
@@ -108,7 +117,8 @@ html.bf-on [data-bf="pill"] { width: -webkit-fit-content; width: fit-content; ma
     justify-content: center;
     padding: 10px 16px;
   }
-  .bf-ticker-item { white-space: normal; text-align: center; padding-right: 0; }
+  .bf-ticker-item { white-space: normal; text-align: center; }
+  .bf-ticker-item::after { content: none; }
   .bf-ticker-item[aria-hidden="true"] { display: none; }
 }
 
