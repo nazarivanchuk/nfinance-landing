@@ -69,8 +69,15 @@ test('TEXT has every string in both languages', () => {
   for (const lang of ['uk', 'en']) for (const k of keys) assert.ok(BF.TEXT[lang][k], lang + '.' + k);
   assert.equal(BF.TEXT.en.bar, '🎁 Black Friday on 26 Nov: the first course discount ever');
   assert.equal(BF.TEXT.en.barLink, 'Join the early list →');
-  assert.equal(BF.TEXT.uk.bar, '🎁 Black Friday 26 листопада: перша знижка на курс в історії');
+  assert.equal(BF.TEXT.uk.bar, '🎁 Black Friday 26 листопада: не пропусти єдину можливість знижки на навчання');
+  assert.equal(BF.TEXT.uk.pill, '🎁 Black Friday 26 листопада · унікальна можливість');
+  assert.ok(BF.TEXT.uk.ticker.includes('COT НАВЧАННЯ ДО −30%'));
   assert.equal(BF.TEXT.uk.barLink, 'Записатися в ранній список →');
   assert.equal(BF.TEXT.en.pill, '🎁 Black Friday on 26 Nov · first discount ever');
   assert.equal(BF.EARLY_LIST_URL, 'https://t.me/NFinanceTradingBot?start=bf');
+});
+
+test('no UA campaign string uses the word "курс" (any form)', () => {
+  for (const group of [BF.TEXT.uk, BF.SALE_TEXT.uk])
+    for (const [k, v] of Object.entries(group)) assert.doesNotMatch(v, /курс/i, k);
 });

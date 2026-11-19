@@ -32,7 +32,7 @@
     return a;
   }
 
-  // fill(inner) adds the bar content; extraCls is a modifier class (sale = violet bar).
+  // fill(inner) adds the bar content; extraCls is a modifier class (sale = red bar).
   function mountBar(fill, extraCls) {
     var bar = el("div", "bf-bar" + (extraCls ? " " + extraCls : ""));
     bar.setAttribute("role", "region");
@@ -161,8 +161,25 @@
     if (txt) startClock([txt], T.chipPrefix);
   }
 
-  // Every [data-bf-price] gets: struck old price before it, the sale price, and its
-  // per-day / per-month sub-label (next sibling) recalculated. Pro badge → BF badge.
+  // Undoable DOM helpers (each registers its own cleanup).
+  function addClass(node, cls) {
+    node.classList.add(cls);
+    cleanups.push(function () { node.classList.remove(cls); });
+  }
+  function append(parent, child, before) {
+    parent.insertBefore(child, before || null);
+    cleanups.push(function () { child.parentNode && child.parentNode.removeChild(child); });
+  }
+  // Take a node out of the DOM; teardown puts it back in the same place.
+  function detach(node) {
+    var parent = node.parentNode, next = node.nextSibling;
+    parent.removeChild(node);
+    cleanups.push(function () { parent.insertBefore(node, next && next.parentNode === parent ? next : null); });
+  }
+
+  // Every [data-bf-price] gets: struck old price before it + the sale price; the
+  // per-day / per-month sub-label is removed. Junior/Middle get a red "−N%" chip;
+  // the Pro card turns red (CSS .bf-pro) with a white BF badge and a "SAVE $360" ribbon.
   function applyPrices() {
     var nodes = document.querySelectorAll("[data-bf-price]");
     for (var i = 0; i < nodes.length; i++) {
@@ -171,37 +188,31 @@
       var p = BF.COURSE_PRICES[key];
       if (!p) continue;
       var row = priceEl.parentNode;
-      row.classList.add("bf-price-row");
+      addClass(row, "bf-price-row");
       var old = el("s", "bf-old-price");
       old.appendChild(el("span", "bf-sr", S.oldPriceLabel + ": "));
       old.appendChild(document.createTextNode(BF.formatUsd(p.normal, LANG)));
-      row.insertBefore(old, priceEl);
+      append(row, old, priceEl);
       swapText(priceEl, BF.formatUsd(p.sale, LANG));
       var sub = priceEl.nextElementSibling;
-      var unit = sub && BF.rateUnit(sub.textContent);
-      if (unit) swapText(sub, BF.rateLabel(key, unit, LANG));
+      if (sub && /(^|\s)monthly-price/.test(sub.className)) detach(sub);
+      var card = priceEl.closest ? priceEl.closest(".plans_card") : null;
       if (key === "course_pro") {
-        var card = priceEl, badge = null;
-        for (var up = 0; up < 8 && card && !badge; up++) {
-          card = card.parentNode;
-          badge = card && card.querySelector ? card.querySelector(".popular-tag-text") : null;
-        }
+        if (!card) continue;
+        addClass(card, "bf-pro");
+        var badge = card.querySelector(".popular-tag-text");
         if (badge) {
           swapText(badge, S.badge);
-          badge.parentNode.classList.add("bf-badge");
+          addClass(badge.parentNode, "bf-badge");
         }
+        var wrap = el("div", "bf-ribbon-wrap");
+        wrap.setAttribute("aria-hidden", "true");
+        wrap.appendChild(el("span", "bf-ribbon", S.ribbon));
+        append(card, wrap, card.firstChild);
+      } else {
+        append(row, el("span", "bf-off-chip", "−" + BF.discountPct(key) + "%"));
       }
-      (function (row, old) {
-        cleanups.push(function () {
-          old.parentNode && old.parentNode.removeChild(old);
-          row.classList.remove("bf-price-row");
-        });
-      })(row, old);
     }
-    cleanups.push(function () {
-      var b = document.querySelectorAll(".bf-badge");
-      for (var j = 0; j < b.length; j++) b[j].classList.remove("bf-badge");
-    });
   }
 
   // Sale only: every bare bot CTA → ?start=course (bot opens the course catalog with BF prices).

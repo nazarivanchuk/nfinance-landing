@@ -36,18 +36,6 @@ test('every bot CTA in both pages is a bare bot link the sale rewrites', () => {
   }
 });
 
-test('perDay sale values', () => {
-  assert.equal(BF.perDay('course_junior'), 5.65);
-  assert.equal(BF.perDay('course_middle'), 4.66);
-  assert.equal(BF.perDay('course_pro'), 2.30);
-});
-
-test('perMonth sale values', () => {
-  assert.equal(BF.perMonth('course_junior'), 169.5);
-  assert.equal(BF.perMonth('course_middle'), 139.75);
-  assert.equal(BF.perMonth('course_pro'), 69.92);
-});
-
 test('discountPct', () => {
   assert.equal(BF.discountPct('course_pro'), 30);
   assert.equal(BF.discountPct('course_middle'), 20);
@@ -64,20 +52,14 @@ test('formatUsd: whole vs fixed decimals, uk comma', () => {
   assert.equal(BF.formatUsd(169.5, 'en', 2), '$169.50');
 });
 
-test('rateLabel: per-day / per-month sub-labels', () => {
-  assert.equal(BF.rateLabel('course_junior', 'day', 'en'), '$5.65 / day');
-  assert.equal(BF.rateLabel('course_middle', 'day', 'uk'), '$4,66 / день');
-  assert.equal(BF.rateLabel('course_pro', 'day', 'en'), '$2.30 / day');
-  assert.equal(BF.rateLabel('course_junior', 'month', 'en'), '$169.50 / month');
-  assert.equal(BF.rateLabel('course_junior', 'month', 'uk'), '$169,50 / місяць');
+test('per-day / per-month helpers are gone (sale shows old + new price only)', () => {
+  for (const k of ['perDay', 'perMonth', 'rateLabel', 'rateUnit']) assert.equal(BF[k], undefined, k);
 });
 
-test('rateUnit detects the unit of an existing sub-label', () => {
-  assert.equal(BF.rateUnit('$6.65 / day'), 'day');
-  assert.equal(BF.rateUnit('$6,65 / день'), 'day');
-  assert.equal(BF.rateUnit('$199.5 / month'), 'month');
-  assert.equal(BF.rateUnit('$199,5 / місяць'), 'month');
-  assert.equal(BF.rateUnit('something'), null);
+test('savingUsd matches the Pro ribbon', () => {
+  assert.equal(BF.savingUsd('course_pro'), 360);
+  assert.equal(BF.SALE_TEXT.en.ribbon, 'SAVE ' + BF.formatUsd(BF.savingUsd('course_pro'), 'en'));
+  assert.equal(BF.SALE_TEXT.uk.ribbon, 'ЕКОНОМІЯ ' + BF.formatUsd(BF.savingUsd('course_pro'), 'uk'));
 });
 
 test('SALE_TEXT verbatim strings, key parity', () => {
@@ -85,7 +67,7 @@ test('SALE_TEXT verbatim strings, key parity', () => {
   assert.deepEqual(Object.keys(S.uk).sort(), Object.keys(S.en).sort());
   for (const lang of ['uk', 'en']) for (const k of Object.keys(S.en)) assert.ok(S[lang][k], lang + '.' + k);
   assert.equal(S.en.bar, '🎁 The first discount ever. Only on Black Friday: up to −30% on the course');
-  assert.equal(S.uk.bar, '🎁 Перша знижка в історії. Тільки на Black Friday: до −30% на курс');
+  assert.equal(S.uk.bar, '🎁 Перша знижка в історії. Тільки на Black Friday: до −30% на COT Навчання');
   assert.equal(S.en.plansLink, 'See plans →');
   assert.equal(S.uk.plansLink, 'Дивитись тарифи →');
   assert.equal(S.en.plansLinkShort, 'Plans →');
@@ -93,13 +75,13 @@ test('SALE_TEXT verbatim strings, key parity', () => {
   assert.equal(S.en.nfifLink, 'NFIF −50% →');
   assert.equal(S.uk.nfifLink, 'NFIF −50% →');
   assert.equal(S.en.pill, '🎁 Black Friday · first discount ever');
-  assert.equal(S.uk.pill, '🎁 Black Friday · перша знижка в історії');
+  assert.equal(S.uk.pill, '🎁 Black Friday · унікальна можливість');
   assert.equal(S.en.cta, 'Start learning · up to −30%');
   assert.equal(S.uk.cta, 'Почати навчання · до −30%');
   assert.equal(S.en.badge, '🎁 −30% · BF');
   assert.equal(S.uk.badge, '🎁 −30% · BF');
-  assert.equal(S.en.ticker, 'PRO $839 ▼30% · MIDDLE $559 ▼20% · JUNIOR $339 ▼15% · FIRST DISCOUNT SINCE LAUNCH · ENDS MON 23:59 KYIV');
-  assert.equal(S.uk.ticker, 'PRO $839 ▼30% · MIDDLE $559 ▼20% · JUNIOR $339 ▼15% · ПЕРША ЗНИЖКА З МОМЕНТУ ЗАПУСКУ · ЗАКІНЧУЄТЬСЯ ПН 23:59 КИЇВ');
+  assert.equal(S.en.ticker, 'PRO $839 ▼30% · MIDDLE $559 ▼20% · JUNIOR $339 ▼15% · FIRST DISCOUNT SINCE LAUNCH · SALES UP TO −50% · ENDS MONDAY 23:59 KYIV!');
+  assert.equal(S.uk.ticker, 'PRO $839 ▼30% · MIDDLE $559 ▼20% · JUNIOR $339 ▼15% · ПЕРША ЗНИЖКА З МОМЕНТУ ЗАПУСКУ · ЗНИЖКИ ДО −50% · ЗАКІНЧУЄТЬСЯ В ПОНЕДІЛОК О 23:59 КИЇВ!');
   assert.equal(S.en.chipPrefix + ' ' + BF.formatCountdown({ d: 2, h: 14, m: 37, s: 0 }, 'en'), 'Ends in 2d 14h 37m');
   assert.equal(S.uk.chipPrefix + ' ' + BF.formatCountdown({ d: 2, h: 14, m: 37, s: 0 }, 'uk'), 'Закінчується через 2д 14год 37хв');
   assert.equal(BF.PLANS_ANCHOR, '#plans-section');

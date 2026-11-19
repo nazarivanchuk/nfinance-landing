@@ -58,11 +58,11 @@
 
   var TEXT = {
     uk: {
-      bar: "🎁 Black Friday 26 листопада: перша знижка на курс в історії",
+      bar: "🎁 Black Friday 26 листопада: не пропусти єдину можливість знижки на навчання",
       barLink: "Записатися в ранній список →",
-      pill: "🎁 Black Friday 26 листопада · перша знижка в історії",
+      pill: "🎁 Black Friday 26 листопада · унікальна можливість",
       chipPrefix: "Старт через",
-      ticker: "BLACK FRIDAY · 26 ЛИСТОПАДА 18:00 КИЇВ · КУРС ДО −30% · ПЕРША ЗНИЖКА З МОМЕНТУ ЗАПУСКУ · ЗАПИШИСЬ У РАННІЙ СПИСОК"
+      ticker: "BLACK FRIDAY · 26 ЛИСТОПАДА 18:00 КИЇВ · COT НАВЧАННЯ ДО −30% · ПЕРША ЗНИЖКА З МОМЕНТУ ЗАПУСКУ · ЗАПИШИСЬ У РАННІЙ СПИСОК"
     },
     en: {
       bar: "🎁 Black Friday on 26 Nov: the first course discount ever",
@@ -87,14 +87,11 @@
     course_pro: { normal: 1199, sale: 839, days: 365, months: 12 }
   };
 
-  function round2(v) { return Math.round(v * 100) / 100; }
-
-  function perDay(key) { var p = COURSE_PRICES[key]; return round2(p.sale / p.days); }
-  function perMonth(key) { var p = COURSE_PRICES[key]; return round2(p.sale / p.months); }
   function discountPct(key) {
     var p = COURSE_PRICES[key];
     return Math.round((1 - p.sale / p.normal) * 100);
   }
+  function savingUsd(key) { var p = COURSE_PRICES[key]; return p.normal - p.sale; }
 
   // "$339" (whole, no decimals given) or "$5.65" / "$5,65" (uk uses a decimal comma).
   function formatUsd(v, lang, decimals) {
@@ -103,34 +100,19 @@
     return "$" + s;
   }
 
-  var RATE_UNITS = { uk: { day: "день", month: "місяць" }, en: { day: "day", month: "month" } };
-
-  // Sub-label under a card price, e.g. "$5.65 / day", "$169,50 / місяць".
-  function rateLabel(key, unit, lang) {
-    var v = unit === "month" ? perMonth(key) : perDay(key);
-    var u = (RATE_UNITS[lang] || RATE_UNITS.en)[unit];
-    return formatUsd(v, lang, 2) + " / " + u;
-  }
-
-  // Which unit an existing sub-label uses ("… / day", "… / місяць"); null if unknown.
-  function rateUnit(text) {
-    if (/\/\s*(day|день)/i.test(text || "")) return "day";
-    if (/\/\s*(month|місяць)/i.test(text || "")) return "month";
-    return null;
-  }
-
   var SALE_TEXT = {
     uk: {
-      bar: "🎁 Перша знижка в історії. Тільки на Black Friday: до −30% на курс",
+      bar: "🎁 Перша знижка в історії. Тільки на Black Friday: до −30% на COT Навчання",
       plansLink: "Дивитись тарифи →",
       plansLinkShort: "Тарифи →",
       nfifLink: "NFIF −50% →",
-      pill: "🎁 Black Friday · перша знижка в історії",
+      pill: "🎁 Black Friday · унікальна можливість",
       cta: "Почати навчання · до −30%",
       chipPrefix: "Закінчується через",
       badge: "🎁 −30% · BF",
       oldPriceLabel: "Стара ціна",
-      ticker: "PRO $839 ▼30% · MIDDLE $559 ▼20% · JUNIOR $339 ▼15% · ПЕРША ЗНИЖКА З МОМЕНТУ ЗАПУСКУ · ЗАКІНЧУЄТЬСЯ ПН 23:59 КИЇВ"
+      ribbon: "ЕКОНОМІЯ $360",
+      ticker: "PRO $839 ▼30% · MIDDLE $559 ▼20% · JUNIOR $339 ▼15% · ПЕРША ЗНИЖКА З МОМЕНТУ ЗАПУСКУ · ЗНИЖКИ ДО −50% · ЗАКІНЧУЄТЬСЯ В ПОНЕДІЛОК О 23:59 КИЇВ!"
     },
     en: {
       bar: "🎁 The first discount ever. Only on Black Friday: up to −30% on the course",
@@ -142,7 +124,8 @@
       chipPrefix: "Ends in",
       badge: "🎁 −30% · BF",
       oldPriceLabel: "Old price",
-      ticker: "PRO $839 ▼30% · MIDDLE $559 ▼20% · JUNIOR $339 ▼15% · FIRST DISCOUNT SINCE LAUNCH · ENDS MON 23:59 KYIV"
+      ribbon: "SAVE $360",
+      ticker: "PRO $839 ▼30% · MIDDLE $559 ▼20% · JUNIOR $339 ▼15% · FIRST DISCOUNT SINCE LAUNCH · SALES UP TO −50% · ENDS MONDAY 23:59 KYIV!"
     }
   };
 
@@ -153,12 +136,9 @@
     saleBotHref: saleBotHref,
     COURSE_PRICES: COURSE_PRICES,
     SALE_TEXT: SALE_TEXT,
-    perDay: perDay,
-    perMonth: perMonth,
     discountPct: discountPct,
+    savingUsd: savingUsd,
     formatUsd: formatUsd,
-    rateLabel: rateLabel,
-    rateUnit: rateUnit,
     TEASER_START: TEASER_START,
     SALE_START: SALE_START,
     SALE_END: SALE_END,

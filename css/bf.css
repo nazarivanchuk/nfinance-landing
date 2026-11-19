@@ -123,13 +123,16 @@ html.bf-on [data-bf="pill"] { width: -webkit-fit-content; width: fit-content; ma
 }
 
 /* ---- Sale phase ---- */
+/* Red bar like nfif.pro's sale bar: white on #DC2626 = 4.83:1. */
 .bf-bar--sale {
-  background: #7155ff;
+  background: #dc2626;
   border-bottom-color: rgba(255, 255, 255, 0.25);
+  font-weight: 600;
 }
+.bf-bar--sale .bf-bar-text { font-weight: 600; }
 .bf-bar--sale .bf-bar-link { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
 .bf-bar--sale .bf-bar-link:hover,
-.bf-bar--sale .bf-bar-link:focus-visible { color: #fff; opacity: 0.8; text-decoration-thickness: 2px; }
+.bf-bar--sale .bf-bar-link:focus-visible { color: #fff; opacity: 0.85; text-decoration-thickness: 2px; }
 .bf-bar--sale .bf-short { display: none; }
 .bf-bar-count {
   font-variant-numeric: tabular-nums;
@@ -137,21 +140,17 @@ html.bf-on [data-bf="pill"] { width: -webkit-fit-content; width: fit-content; ma
   font-weight: 600;
   padding: 0 10px;
   border-radius: 999px;
-  background: rgba(21, 22, 27, 0.28);
+  background: rgba(21, 22, 27, 0.32);
 }
 
-/* Pricing cards: struck old price + sale price + recalculated sub-label in one row.
-   The Webflow sub-label is absolutely positioned at a fixed left offset that assumes the
-   old price width; in sale it flows in the row instead. */
+/* Pricing cards: struck old price + sale price (+ red −N% chip) in one row.
+   The per-day / per-month sub-label is removed by js/bf.js in sale. */
 html.bf-sale .bf-price-row {
   flex-wrap: wrap;
   align-items: baseline;
   column-gap: 10px;
-  row-gap: 2px;
+  row-gap: 4px;
 }
-html.bf-sale .bf-price-row > .monthly-price,
-html.bf-sale .bf-price-row > .monthly-price-2,
-html.bf-sale .bf-price-row > .monthly-price-3 { position: static; }
 .bf-old-price {
   color: #fff;
   opacity: 0.6;
@@ -170,9 +169,80 @@ html.bf-sale .bf-price-row > .monthly-price-3 { position: static; }
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+.bf-off-chip {
+  align-self: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-family: Unbounded, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+/* Pro card: red/white sale card (js/bf.js adds .bf-pro + .bf-ribbon-wrap; removed on teardown). */
+html.bf-sale .plans_card.pro_card.bf-pro {
+  position: relative;
+  background-color: #7f1d1d;
+  background-image:
+    radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.18), transparent 45%),
+    linear-gradient(160deg, #dc2626 0%, #b91c1c 50%, #7f1d1d 100%);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 18px 48px rgba(220, 38, 38, 0.35);
+}
+html.bf-sale .bf-pro .plan-name,
+html.bf-sale .bf-pro .price,
+html.bf-sale .bf-pro .feature { color: #fff; }
+html.bf-sale .bf-pro .plan-name { font-weight: 600; }
+html.bf-sale .bf-pro .plan-description { opacity: 0.95; }
+html.bf-sale .bf-pro .feature-2 { opacity: 0.7; }
+html.bf-sale .bf-pro .bf-old-price { opacity: 0.85; }
+html.bf-sale .bf-pro .check-streamline-sharp-line---free { filter: brightness(0) invert(1); }
+html.bf-sale .bf-pro .plans_button { background-color: #fff; }
+html.bf-sale .bf-pro .plans_button,
+html.bf-sale .bf-pro .plans_button p { color: #dc2626; font-weight: 600; }
 html.bf-sale .bf-badge {
   background: #7155ff;
   padding: 0 8px;
+}
+html.bf-sale .bf-pro .bf-badge { background: #fff; }
+/* Keep the badge clear of the corner ribbon. */
+html.bf-sale .bf-pro .container-10 { padding-right: 88px; box-sizing: border-box; }
+html.bf-sale .bf-pro .plan-description { padding-right: 40px; box-sizing: border-box; }
+html.bf-sale .bf-pro .bf-badge .popular-tag-text { color: #dc2626; font-weight: 600; }
+
+/* Diagonal corner ribbon (clipped by its own wrapper, so the card keeps overflow:visible). */
+.bf-ribbon-wrap {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 124px;
+  height: 124px;
+  overflow: hidden;
+  border-top-right-radius: 16px;
+  pointer-events: none;
+  z-index: 2;
+}
+.bf-ribbon {
+  position: absolute;
+  top: 32px;
+  right: -33px;
+  width: 150px;
+  padding: 4px 0;
+  transform: rotate(45deg);
+  background: #fff;
+  color: #dc2626;
+  text-align: center;
+  font-family: Unbounded, sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 12px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 @media screen and (max-width: 479px) {
