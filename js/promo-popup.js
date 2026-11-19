@@ -6,6 +6,9 @@
 (function () {
   "use strict";
 
+  // Black Friday 2026: pause the mini-course popup while the campaign (or a ?bf= preview) runs.
+  if (window.BFCore && window.BFCore.getPhase(new Date(), window.BFCore.getOverride(location.search)) !== "off") return;
+
   var DEFAULT_VARIANT = "b"; // "" = disabled; "a" centered modal | "b" corner card | "c" sticky bar
   var KEY = "nf_minicourse_promo_v1";
   var COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000; // don't re-show for 3 days after seen/dismissed

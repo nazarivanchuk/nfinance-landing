@@ -1,0 +1,120 @@
+/* Black Friday 2026 — course site. Every rule is scoped to elements that js/bf.js
+   creates or to html.bf-on, so with phase 'off' nothing here applies (no layout shift). */
+
+/* ---- Top bar: fixed above the fixed Webflow nav; nav + content pushed by its height ---- */
+.bf-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: #15161b;
+  color: #fff;
+  border-bottom: 1px solid rgba(113, 85, 255, 0.45);
+  font-family: Geist, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+}
+.bf-bar-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 9px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 16px;
+  text-align: center;
+}
+.bf-bar-text { color: #fff; }
+.bf-bar-link {
+  color: #b9a9ff;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.bf-bar-link:hover,
+.bf-bar-link:focus-visible { color: #fff; text-decoration: underline; }
+
+html.bf-on body { padding-top: var(--bf-bar-h, 0px); }
+html.bf-on #header .container { top: var(--bf-bar-h, 0px) !important; }
+
+/* ---- Hero pill: the BF text is longer than the original (pill has max-width 260px) ---- */
+html.bf-on [data-bf="pill"] { width: -webkit-fit-content; width: fit-content; max-width: 100%; }
+
+/* ---- Countdown chip next to "Start learning" ---- */
+.bf-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: rgba(113, 85, 255, 0.16);
+  outline: 1px solid rgba(113, 85, 255, 0.55);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  color: #fff;
+  font-family: Geist, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.bf-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7155ff;
+  box-shadow: 0 0 0 3px rgba(113, 85, 255, 0.3);
+  flex: none;
+}
+
+/* ---- Ticker strip directly under the hero ---- */
+.bf-ticker {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  width: 100%;
+  background: #15161b;
+  border-top: 1px solid rgba(113, 85, 255, 0.45);
+  border-bottom: 1px solid rgba(113, 85, 255, 0.45);
+  color: #fff;
+  font-family: Unbounded, sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+}
+.bf-ticker-track {
+  display: flex;
+  width: max-content;
+  padding: 10px 0;
+  animation: bf-ticker 40s linear infinite;
+}
+.bf-ticker-item {
+  flex: none;
+  white-space: nowrap;
+  padding-right: 0.5em;
+}
+@keyframes bf-ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bf-ticker-track {
+    animation: none;
+    width: auto;
+    justify-content: center;
+    padding: 10px 16px;
+  }
+  .bf-ticker-item { white-space: normal; text-align: center; padding-right: 0; }
+  .bf-ticker-item[aria-hidden="true"] { display: none; }
+}
+
+@media screen and (max-width: 479px) {
+  .bf-bar { font-size: 13px; line-height: 18px; }
+  .bf-bar-inner { padding: 8px 16px; }
+  .bf-chip { height: 40px; font-size: 13px; }
+  .bf-ticker { font-size: 11px; }
+}
